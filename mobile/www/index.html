@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>File Converter App</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f6f7f9;
+      background-image: radial-gradient(ellipse at 12% 18%, rgba(255, 224, 222, .74), transparent 34%), radial-gradient(ellipse at 88% 78%, rgba(255, 234, 218, .78), transparent 36%);
+      margin: 0;
+      padding: 96px 20px 40px;
+      min-height: 100vh;
+      min-height: 100svh;
+      box-sizing: border-box;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #24262d;
+      position: relative;
+      isolation: isolate;
+      overflow-x: hidden;
+    }
+    .motion-scene { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+    .motion-glow { position: absolute; width: 360px; height: 360px; border-radius: 50%; background: rgba(255, 80, 69, .10); filter: blur(65px); animation: glowDrift 11s ease-in-out infinite alternate; }
+    .motion-glow.one { left: 4%; top: 20%; }
+    .motion-glow.two { right: 5%; bottom: 8%; background: rgba(255, 166, 91, .15); animation-delay: -5s; }
+    .file-float { position: absolute; width: 142px; height: 164px; padding: 16px; box-sizing: border-box; border: 1px solid rgba(255,255,255,.9); border-radius: 18px; background: rgba(255,255,255,.84); box-shadow: 0 22px 55px rgba(49,38,38,.10); backdrop-filter: blur(10px); animation: floatFile 7s ease-in-out infinite; }
+    .file-float.one { left: max(7%, calc(50% - 540px)); top: 25%; }
+    .file-float.two { right: max(8%, calc(50% - 540px)); top: 19%; animation-delay: -2.5s; }
+    .file-float.three { right: max(13%, calc(50% - 570px)); bottom: 12%; animation-delay: -4.5s; }
+    .file-float.four { left: 3%; bottom: 15%; width: 124px; height: 146px; animation-delay: -1.5s; }
+    .file-float.five { right: 3%; top: 52%; width: 124px; height: 146px; animation-delay: -3.5s; }
+    .file-float.six { left: 28%; top: 8%; width: 118px; height: 138px; animation-delay: -5.5s; }
+    .file-badge { display: grid; place-items: center; width: 48px; height: 56px; border-radius: 11px; color: white; background: #ef4943; font-size: 11px; font-weight: 800; letter-spacing: .5px; }
+    .file-float.two .file-badge { background: #4988e8; }
+    .file-float.three .file-badge { background: #8a62d7; }
+    .file-lines { display: grid; gap: 7px; margin-top: 15px; }
+    .file-lines i { display: block; height: 5px; border-radius: 8px; background: #e8e9ed; }
+    .file-lines i:nth-child(2) { width: 76%; }
+    .file-lines i:nth-child(3) { width: 56%; }
+    .card {
+      position: relative;
+      z-index: 2;
+      background: #fff;
+      padding: 30px;
+      width: min(100%, 390px);
+      box-sizing: border-box;
+      margin: 20px 0 0;
+      border: 1px solid rgba(31,35,45,.07);
+      border-radius: 18px;
+      box-shadow: 0 22px 60px rgba(31,35,45,.12);
+      display: none;
+      animation: fade 0.3s ease-in-out;
+    }
+    .card.active {
+      display: block;
+    }
+    .login-stack { display: none; position: relative; z-index: 2; width: min(100%, 390px); }
+    .login-stack.active { display: flex; flex-direction: column; align-items: center; gap: 15px; }
+    .login-stack .card { width: 100%; margin: 0; }
+    .brand-title { margin: 0; color: #d8322c; font-family: "Trebuchet MS", "Segoe UI", sans-serif; font-size: clamp(29px, 4vw, 40px); font-weight: 900; letter-spacing: .14em; line-height: 1.1; text-align: center; text-shadow: 0 8px 22px rgba(216,50,44,.17); }
+    h2 {
+      text-align: center;
+      margin: 0 0 22px;
+      font-size: 27px;
+      letter-spacing: -.5px;
+    }
+    input, select, button {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+    button:hover {
+      background: #5a67d8;
+    }
+    .note {
+      font-size: 12px;
+      text-align: center;
+      color: #666;
+    }
+    .spinner {
+      border: 4px solid #eee;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      width: 25px;
+      height: 25px;
+      animation: spin 1s linear infinite;
+      margin: 10px auto;
+}
+body, .card, input, select, button {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* 🌙 Dark mode styles */
+body.dark {
+  background: radial-gradient(ellipse at 16% 18%, rgba(93, 70, 153, .24), transparent 38%), radial-gradient(ellipse at 88% 78%, rgba(24, 119, 122, .18), transparent 40%), linear-gradient(135deg, #171923, #0b1020);
+  color: #e5e7eb;
+}
+
+body.dark .card {
+  background: #1f2933;
+  color: #e5e7eb;
+}
+
+body.dark input,
+body.dark select {
+  background: #111827;
+  color: #e5e7eb;
+  border: 1px solid #374151;
+}
+
+body.dark button {
+  background: #4f46e5;
+}
+
+body.dark .note {
+  color: #9ca3af;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes fade {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+/* 🌗 Theme toggle switch */
+
+.switch {
+  position: relative;
+  display: inline-block;
+  flex: 0 0 56px;
+  width: 56px;
+  height: 30px;
+  margin-right: 0;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: #cbd5e1;
+  border-radius: 34px;
+  transition: background-color 0.3s;
+}
+
+.slider::before {
+  content: "🥵";
+  position: absolute;
+  height: 26px;
+  width: 26px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s;
+  font-size: 14px;
+}
+
+/* checked = dark mode */
+.switch input:checked + .slider {
+  background-color: #4f46e5;
+}
+
+.switch input:checked + .slider::before {
+  transform: translateX(26px);
+  content: "🥶";
+}
+/* 🌐 Top bar */
+#topBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 12px 20px;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+  z-index: 1000;
+  display: none;
+}
+
+/* Welcome text */
+#welcomeUser {
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
+}
+
+/* Dark mode welcome text */
+body.dark #welcomeUser {
+  color: #e5e7eb;
+}
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Logout button */
+#logoutBtn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  background: #ef4444;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#logoutBtn:hover {
+  background: #dc2626;
+}
+
+/* Dark mode logout */
+body.dark #logoutBtn {
+  background: #b91c1c;
+}
+
+/* 📁 File input resized & aligned */
+input[type="file"] {
+  width: 100%;
+  min-height: 54px;
+  padding: 7px;
+  border: 1px solid #e3e6ee;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #fff, #f4f6fb);
+  font-size: 14px;
+  cursor: pointer;
+  box-sizing: border-box;
+  box-shadow: 0 8px 20px rgba(30, 41, 59, .07);
+}
+input[type="file"]::file-selector-button {
+  margin-right: 12px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 11px;
+  color: #fff;
+  background: linear-gradient(135deg, #e94a43, #c92e38);
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform .18s ease, filter .18s ease;
+}
+input[type="file"]::file-selector-button:hover { filter: brightness(1.08); transform: translateY(-1px); }
+body.dark input[type="file"] {
+  color: #dce4f2;
+  border-color: #39445d;
+  background: linear-gradient(145deg, #171d2c, #111827);
+  box-shadow: 0 10px 26px rgba(0,0,0,.25);
+}
+body.dark input[type="file"]::file-selector-button {
+  background: linear-gradient(135deg, #a34d72, #6950b5);
+}
+
+    /* Refined tool styling */
+    input, select, button { border-radius: 8px; border-color: #dfe1e6; }
+    input:focus, select:focus { outline: 3px solid rgba(239,73,67,.16); border-color: #ef4943; }
+    #format {
+      appearance: none;
+      -webkit-appearance: none;
+      min-height: 50px;
+      padding: 12px 46px 12px 14px;
+      border: 1px solid #e1e3e9;
+      border-radius: 12px;
+      color: #292b33;
+      background-color: #fff;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23e03b35' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 10 5 5 5-5'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      background-size: 18px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 5px 16px rgba(35,38,48,.06);
+      cursor: pointer;
+      transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+    }
+    #format:hover { border-color: #ef7771; box-shadow: 0 8px 22px rgba(225,58,52,.10); }
+    #format:focus { outline: 3px solid rgba(239,73,67,.17); border-color: #e03b35; }
+    #format option, #format optgroup { color: #292b33; background: #fff; }
+    body.dark #format {
+      color: #e5e7eb;
+      background-color: #111827;
+      border-color: #374151;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23fb817b' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 10 5 5 5-5'/%3E%3C/svg%3E");
+      box-shadow: 0 5px 16px rgba(0,0,0,.18);
+    }
+    body.dark #format option, body.dark #format optgroup { color: #e5e7eb; background: #111827; }
+    button { background: #e5322d; }
+    button:hover { background: #c92722; }
+    #downloadBtn { border: 0; border-radius: 14px; padding: 13px 18px; color: #fff; background: linear-gradient(135deg, #e94a43, #c92e38); box-shadow: 0 10px 22px rgba(201,46,56,.24); font-weight: 700; letter-spacing: .01em; transition: transform .18s ease, box-shadow .18s ease, filter .18s ease; }
+    #downloadBtn:hover { background: linear-gradient(135deg, #f05b51, #d13944); transform: translateY(-1px); box-shadow: 0 13px 25px rgba(201,46,56,.3); }
+    #downloadBtn:active { transform: translateY(0); }
+    #downloadBtn[hidden] { display: none; }
+    body.dark #downloadBtn { background: linear-gradient(135deg, #a34d72, #6950b5); box-shadow: 0 10px 24px rgba(72,49,122,.38); }
+    .switch input:checked + .slider { background-color: #e5322d; }
+    .auth-message { display: none; padding: 11px 12px; border-radius: 8px; margin: -8px 0 14px; text-align: center; font-size: 13px; line-height: 1.4; }
+    .auth-message.visible { display: block; }
+    .auth-message.success { color: #176b45; background: #e9f8ef; }
+    .auth-message.error { color: #a62824; background: #fff0ef; }
+    .password-field { position: relative; width: 100%; margin: 10px 0; }
+    .password-field input { margin: 0; padding-right: 76px; }
+    .password-toggle { position: absolute; top: 50%; right: 9px; width: auto; margin: 0; padding: 6px 9px; transform: translateY(-50%); border: 0; border-radius: 7px; background: transparent; color: #bd302b; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .password-toggle[hidden] { display: none; }
+    .password-toggle:hover { background: rgba(229,50,45,.09); }
+    .password-hint { display: block; margin: -4px 0 8px; color: #6b7280; text-align: left; font-size: 12px; }
+    .conversion-hint { margin: -2px 0 8px; color: #656b78; font-size: 12px; text-align: left; }
+    #format:disabled { opacity: .65; cursor: not-allowed; }
+    #format option:disabled { color: #9ca3af; }
+    body.dark .password-toggle { color: #ff918b; }
+    body.dark .password-hint, body.dark .conversion-hint { color: #aab2c0; }
+    body.dark .card { border-color: rgba(255,255,255,.08); }
+    body.dark .file-float { background: rgba(31,41,51,.88); border-color: rgba(255,255,255,.12); }
+    body.dark .motion-glow.one { background: rgba(130, 92, 206, .18); }
+    body.dark .motion-glow.two { background: rgba(45, 170, 167, .14); }
+    body.dark .motion-glow { animation-duration: 16s; opacity: .8; }
+    body.dark .file-float { box-shadow: 0 24px 60px rgba(0,0,0,.28); animation-duration: 9s; }
+    body.dark .file-lines i { background: #3a4655; }
+    body.dark button { background: #e5322d; }
+    #welcomeUser { color: #343640; }
+    body.dark #welcomeUser { color: #e5e7eb; }
+    @keyframes floatFile { 0%, 100% { translate: 0 0; } 50% { translate: 0 -16px; } }
+    @keyframes glowDrift { from { translate: -12px 8px; scale: .92; } to { translate: 26px -18px; scale: 1.08; } }
+    @media (max-width: 700px) {
+      body { padding: 82px 16px 28px; }
+      .file-float { opacity: .55; scale: .78; }
+      .file-float.one { left: -25px; top: 12%; }
+      .file-float.two { right: -28px; top: 11%; }
+      .file-float.three { right: -18px; bottom: 5%; }
+      .file-float.four, .file-float.five { opacity: .3; scale: .62; }
+      .file-float.six { display: none; }
+      .card { padding: 26px 22px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+    }
+    /* Login-stage layout and distinct orbiting file tiles */
+    .login-stack.active { gap: 24px; }
+    .brand-title {
+      font-family: "Space Grotesk", "Arial Black", sans-serif;
+      font-size: clamp(44px, 6vw, 62px);
+      font-weight: 700;
+      letter-spacing: .13em;
+      line-height: 1;
+      background: linear-gradient(100deg, #bd2525 5%, #f04a3f 52%, #ff8657 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      filter: drop-shadow(0 8px 12px rgba(216,50,44,.18));
+    }
+    .brand-title::after {
+      content: "";
+      display: block;
+      width: 58%;
+      height: 4px;
+      margin: 13px auto 0;
+      border-radius: 5px;
+      background: linear-gradient(90deg, #f04a3f, #ffb05b);
+    }
+    .file-float { border-radius: 20px; box-shadow: 0 20px 54px rgba(42,34,34,.12); }
+    .file-float.one { left: max(22px, calc(50% - 650px)); top: 17%; width: 150px; height: 174px; rotate: -9deg; }
+    .file-float.two { right: max(22px, calc(50% - 650px)); left: auto; top: 18%; width: 158px; height: 126px; border-radius: 24px 12px 24px 12px; rotate: 8deg; animation-duration: 8s; }
+    .file-float.three { left: max(65px, calc(50% - 680px)); right: auto; bottom: 15%; top: auto; width: 158px; height: 104px; border-radius: 52px; rotate: 6deg; animation-duration: 9s; }
+    .file-float.three .file-badge { width: 46px; height: 46px; border-radius: 50%; }
+    .file-float.three .file-lines { margin-top: 11px; }
+    .file-float.four { left: auto; right: max(65px, calc(50% - 680px)); bottom: 17%; width: 136px; height: 158px; border-radius: 30px 12px 30px 12px; rotate: -7deg; }
+    .file-float.four .file-badge { background: #ee8d35; }
+    .file-float.five { left: max(18px, calc(50% - 640px)); right: auto; top: 53%; bottom: auto; width: 118px; height: 118px; border-radius: 50%; display: grid; place-content: center; rotate: 10deg; animation-duration: 8.5s; }
+    .file-float.five .file-badge { width: 50px; height: 50px; border-radius: 15px; background: #16a18b; }
+    .file-float.five .file-lines { display: none; }
+    .file-float.six { left: auto; right: max(18px, calc(50% - 640px)); top: 54%; bottom: auto; width: 164px; height: 94px; border-radius: 48px; display: flex; align-items: center; gap: 12px; rotate: -8deg; animation-duration: 9.5s; }
+    .file-float.six .file-badge { width: 52px; height: 52px; border-radius: 50%; background: #8056c9; }
+    .file-float.six .file-lines { flex: 1; margin: 0; }
+    .file-float.one { animation-delay: -1s; }
+    .file-float.two { animation-delay: -3s; }
+    .file-float.three { animation-delay: -5s; }
+    .file-float.four { animation-delay: -2s; }
+    .file-float.five { animation-delay: -4s; }
+    .file-float.six { animation-delay: -6s; }
+    @media (max-width: 700px) {
+      .brand-title { font-size: clamp(38px, 10vw, 50px); letter-spacing: .1em; }
+      .login-stack.active { gap: 18px; }
+      .file-float.four, .file-float.five, .file-float.six { display: none; }
+      .file-float.one { left: -25px; top: 11%; }
+      .file-float.two { right: -30px; top: 12%; }
+      .file-float.three { left: -34px; bottom: 7%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="motion-scene" aria-hidden="true">
+    <div class="motion-glow one"></div>
+    <div class="motion-glow two"></div>
+    <div class="file-float one"><div class="file-badge">PDF</div><div class="file-lines"><i></i><i></i><i></i></div></div>
+    <div class="file-float two"><div class="file-badge">DOCX</div><div class="file-lines"><i></i><i></i><i></i></div></div>
+    <div class="file-float three"><div class="file-badge">AUDIO</div><div class="file-lines"><i></i><i></i><i></i></div></div>
+    <div class="file-float four"><div class="file-badge">PPTX</div><div class="file-lines"><i></i><i></i><i></i></div></div>
+    <div class="file-float five"><div class="file-badge">PNG</div><div class="file-lines"><i></i><i></i><i></i></div></div>
+    <div class="file-float six"><div class="file-badge">MP3</div><div class="file-lines"><i></i><i></i><i></i></div></div>
+  </div>
+  
+  <!-- 🌐 Top Bar -->
+<div id="topBar">
+  <div id="welcomeUser"></div>
+
+  <div class="top-actions">
+    <label class="switch">
+      <input type="checkbox" id="themeSwitch" onchange="toggleTheme()">
+      <span class="slider"></span>
+    </label>
+    <!-- 🚪 Logout -->
+    <button id="logoutBtn" onclick="logout()">Logout</button>
+  </div>
+</div>
+
+  <!-- Login Page -->
+  <div class="login-stack active" id="loginStack">
+  <h1 class="brand-title">FILERALUV</h1>
+  <div class="card active" id="loginCard">
+    <h2>Login</h2>
+    <p class="auth-message" id="loginMessage" role="status" aria-live="polite"></p>
+    <input type="text" id="username" placeholder="Username" />
+    <div class="password-field"><input type="password" id="password" placeholder="Password" autocomplete="current-password" /><button class="password-toggle" id="loginPasswordToggle" type="button" onclick="togglePassword('password', this)" aria-controls="password" aria-pressed="false" hidden>Show</button></div>
+    <button id="loginBtn" onclick="login()">Login</button>
+     <p class="note">
+    Don’t have an account?
+    <a href="#" onclick="showRegister()">Register</a>
+  </p>
+  </div>
+  </div>
+
+   <!-- Register Page -->
+<div class="card" id="registerCard">
+  <h2>Register</h2>
+  <p class="auth-message" id="registerMessage" role="status" aria-live="polite"></p>
+  <input type="text" id="registerUsername" placeholder="Username" />
+  <div class="password-field"><input type="password" id="registerPassword" placeholder="Password" autocomplete="new-password" minlength="8" /><button class="password-toggle" type="button" onclick="togglePassword('registerPassword', this)" aria-controls="registerPassword" aria-pressed="false">Show</button></div>
+  <small class="password-hint">Use at least 8 characters, including letters, numbers, and one symbol (#, _, or @). Only those symbols are allowed.</small>
+  <button id="registerBtn" onclick="register()">Register</button>
+  <p class="note">
+    Already have an account?
+    <a href="#" onclick="showLogin()">Login</a>
+  </p>
+</div>
+
+  <!-- File Converter Page -->
+  <div class="card" id="converterCard">
+    <h2>File Converter</h2>
+    <input type="file" id="fileInput" accept=".txt,.pdf,.docx,.pptx,.png,.jpg,.jpeg,.webp,.mp3,.m4a"/>
+    <p class="conversion-hint">Files up to 50 MB can be uploaded.</p>
+    <select id="format" disabled>
+      <optgroup label="Documents">
+      <option value="txt_to_pdf">TXT → PDF</option>
+      <option value="txt_to_docx">TXT → DOCX</option>
+      <option value="pdf_to_txt">PDF → TXT</option>
+      <option value="docx_to_txt">DOCX → TXT</option>
+      <option value="pdf_to_docx">PDF → DOCX</option>
+      <option value="docx_to_pdf">DOCX to PDF</option>
+      <option value="pptx_to_pdf">PPTX to PDF</option>
+      </optgroup>
+      <optgroup label="Images">
+      <option value="jpg_to_png">JPG to PNG</option>
+      <option value="jpeg_to_png">JPEG to PNG</option>
+      <option value="png_to_jpeg">PNG to JPEG</option>
+      <option value="webp_to_jpeg">WEBP to JPEG</option>
+      <option value="webp_to_png">WEBP to PNG</option>
+      </optgroup>
+      <optgroup label="Audio">
+      <option value="mp3_to_m4a">MP3 to M4A</option>
+      <option value="mp3_to_wav">MP3 to WAV</option>
+      <option value="mp3_to_flac">MP3 to FLAC</option>
+      <option value="m4a_to_wav">M4A to WAV</option>
+      </optgroup>
+    </select>
+    <p id="conversionHint" class="conversion-hint" aria-live="polite"></p>
+    <button id="convertBtn" onclick="convertFile()">Convert</button>
+    <button id="downloadBtn" onclick="downloadConvertedFile()" hidden>Download converted file</button>
+    <div id="status" class="note"></div>
+    
+  </div>
+
+  <script>
+const API_URL = "https://file-converter-backend-0tg6.onrender.com/convert";
+const REGISTER_API = "https://file-converter-backend-0tg6.onrender.com/register";
+const LOGIN_API = "https://file-converter-backend-0tg6.onrender.com/login";
+const extMap = {
+  txt_to_pdf: "pdf",
+  txt_to_docx: "docx",
+  pdf_to_txt: "txt",
+  docx_to_txt: "txt",
+  pdf_to_docx: "docx",
+  jpg_to_png: "png",
+  jpeg_to_png: "png",
+  png_to_jpeg: "jpeg",
+  webp_to_jpeg: "jpeg",
+  webp_to_png: "png",
+  mp3_to_m4a: "m4a",
+  mp3_to_wav: "wav",
+  mp3_to_flac: "flac",
+  m4a_to_wav: "wav",
+  docx_to_pdf: "pdf",
+  pptx_to_pdf: "pdf"
+};
+const conversionsByExtension = {
+  txt: ["txt_to_pdf", "txt_to_docx"],
+  pdf: ["pdf_to_txt", "pdf_to_docx"],
+  docx: ["docx_to_txt", "docx_to_pdf"],
+  pptx: ["pptx_to_pdf"],
+  jpg: ["jpg_to_png"],
+  jpeg: ["jpeg_to_png"],
+  png: ["png_to_jpeg"],
+  webp: ["webp_to_jpeg", "webp_to_png"],
+  mp3: ["mp3_to_m4a", "mp3_to_wav", "mp3_to_flac"],
+  m4a: ["m4a_to_wav"]
+};
+let pendingDownload = null;
+
+// 🔒 Bonus fix: auto-login after refresh (DOM safe)
+window.addEventListener("DOMContentLoaded", () => {
+  // Wake a sleeping free-tier backend while the user is on the login page.
+  fetch(REGISTER_API.replace(/\/register$/, "/health"), { cache: "no-store" }).catch(() => {});
+  // 🌗 sync theme toggle
+   const savedTheme = localStorage.getItem("theme");
+if (savedTheme === "dark") {
+  document.body.classList.add("dark");
+  document.getElementById("themeSwitch").checked = true;
+}
+
+// ✅ auto-login check
+  // Require a fresh login whenever the site is opened or refreshed.
+  localStorage.removeItem("token");
+  localStorage.removeItem("loggedIn");
+  localStorage.removeItem("username");
+  document.getElementById("converterCard").classList.remove("active");
+  document.getElementById("registerCard").classList.remove("active");
+  document.getElementById("loginCard").classList.add("active");
+  document.getElementById("loginStack").classList.add("active");
+  document.getElementById("topBar").style.display = "none";
+  document.getElementById("fileInput").addEventListener("change", updateAvailableConversions);
+  document.getElementById("password").addEventListener("input", updateLoginPasswordToggle);
+  lockConversions();
+});
+
+// 🌗 Dark / Light mode toggle
+function toggleTheme() {
+  const isDark = document.body.classList.toggle("dark");
+
+  localStorage.setItem("theme", isDark ? "dark" : "light");
+  document.getElementById("themeSwitch").checked = isDark;
+}
+
+// 🔁 STEP 2: page switching logic
+function showRegister() {
+  document.getElementById("username").value = "";
+  document.getElementById("password").value = "";
+  document.getElementById("registerMessage").className = "auth-message";
+  document.getElementById("loginMessage").className = "auth-message";
+  document.getElementById("loginStack").classList.remove("active");
+  document.getElementById("registerCard").classList.add("active");
+}
+
+function showLogin() {
+  document.getElementById("registerUsername").value = "";
+  document.getElementById("registerPassword").value = "";
+  document.getElementById("registerMessage").className = "auth-message";
+  document.getElementById("loginMessage").className = "auth-message";
+  document.getElementById("registerCard").classList.remove("active");
+  document.getElementById("loginStack").classList.add("active");
+}
+
+function togglePassword(inputId, button) {
+  const input = document.getElementById(inputId);
+  const showing = input.type === "password";
+  input.type = showing ? "text" : "password";
+  button.textContent = showing ? "Hide" : "Show";
+  button.setAttribute("aria-pressed", String(showing));
+}
+
+function updateLoginPasswordToggle() {
+  const password = document.getElementById("password");
+  const button = document.getElementById("loginPasswordToggle");
+  button.hidden = password.value.length === 0;
+  if (button.hidden && password.type === "text") {
+    password.type = "password";
+    button.textContent = "Show";
+    button.setAttribute("aria-pressed", "false");
+  }
+}
+
+function setAuthMessage(id, message, kind = "error") {
+  const element = document.getElementById(id);
+  element.textContent = message;
+  element.className = `auth-message ${kind} visible`;
+}
+
+function lockConversions() {
+  const select = document.getElementById("format");
+  const convertButton = document.getElementById("convertBtn");
+  [...select.options].forEach(option => { option.disabled = true; });
+  [...select.querySelectorAll("optgroup")].forEach(group => { group.disabled = true; });
+  select.selectedIndex = 0;
+  select.disabled = true;
+  convertButton.disabled = true;
+  document.getElementById("conversionHint").textContent = "";
+}
+
+function updateAvailableConversions() {
+  clearPendingDownload();
+  const file = document.getElementById("fileInput").files[0];
+  const select = document.getElementById("format");
+  const convertButton = document.getElementById("convertBtn");
+  const hint = document.getElementById("conversionHint");
+  const extension = file?.name.split(".").pop().toLowerCase();
+  const allowed = conversionsByExtension[extension] || [];
+
+  [...select.options].forEach(option => {
+    option.disabled = !allowed.includes(option.value);
+  });
+  [...select.querySelectorAll("optgroup")].forEach(group => {
+    group.disabled = ![...group.querySelectorAll("option")].some(option => !option.disabled);
+  });
+  if (!file || !allowed.length) {
+    select.disabled = true;
+    convertButton.disabled = true;
+    hint.textContent = file ? `No conversions are available for .${extension} files.` : "";
+    if (file) document.getElementById("status").textContent = `Unsupported file type: .${extension}`;
+    return;
+  }
+
+  select.value = allowed[0];
+  select.disabled = false;
+  convertButton.disabled = false;
+  hint.textContent = `${extension.toUpperCase()} detected · ${allowed.length} conversion${allowed.length === 1 ? "" : "s"} available. Other formats are locked.`;
+  document.getElementById("status").textContent = "";
+}
+
+function clearPendingDownload() {
+  if (pendingDownload?.url) URL.revokeObjectURL(pendingDownload.url);
+  pendingDownload = null;
+  const convertButton = document.getElementById("convertBtn");
+  const downloadButton = document.getElementById("downloadBtn");
+  if (convertButton) {
+    convertButton.hidden = false;
+    convertButton.disabled = false;
+  }
+  if (downloadButton) {
+    downloadButton.hidden = true;
+    downloadButton.disabled = false;
+    downloadButton.textContent = "Download converted file";
+  }
+}
+
+async function downloadConvertedFile() {
+  if (!pendingDownload) return;
+  const button = document.getElementById("downloadBtn");
+  const status = document.getElementById("status");
+  const capacitor = window.Capacitor;
+  const nativeDownloader = capacitor?.Plugins?.FileDownloader;
+  button.disabled = true;
+  button.textContent = "Saving…";
+
+  try {
+    if (capacitor?.getPlatform?.() === "android") {
+      if (!nativeDownloader?.saveToDownloads) throw new Error("Download support is missing from this app build.");
+      const buffer = await pendingDownload.blob.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      const chunks = [];
+      const chunkSize = 0x8000;
+      for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+        chunks.push(String.fromCharCode(...bytes.subarray(offset, offset + chunkSize)));
+      }
+      await nativeDownloader.saveToDownloads({
+        fileName: pendingDownload.fileName,
+        mimeType: pendingDownload.mimeType,
+        data: btoa(chunks.join(""))
+      });
+      status.textContent = `Saved to Downloads/FILERALUV/${pendingDownload.fileName}`;
+    } else {
+      const anchor = document.createElement("a");
+      anchor.href = pendingDownload.url;
+      anchor.download = pendingDownload.fileName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      status.textContent = "Download started.";
+    }
+    button.textContent = "Downloaded ✓";
+  } catch (error) {
+    status.textContent = "Download failed. Please try again.";
+    button.textContent = "Download converted file";
+    button.disabled = false;
+  }
+}
+
+async function login() {
+  const user = document.getElementById("username").value.trim();
+  const pass = document.getElementById("password").value;
+
+  if (!user || !pass) {
+    setAuthMessage("loginMessage", "Enter your username and password.");
+    return;
+  }
+  try {
+    const res = await fetch(LOGIN_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: user, password: pass })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || `Server error (${res.status})`);
+    if (!data.token) throw new Error("The server did not return a login token");
+
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("username", user);
+    localStorage.setItem("loggedIn", "true");
+   
+    const welcomeEmojis = ["✨", "🌟", "🚀", "🎉", "🌈", "🪄", "💫", "🎨"];
+    const welcomeEmoji = welcomeEmojis[Math.floor(Math.random() * welcomeEmojis.length)];
+    document.getElementById("welcomeUser").textContent = `Welcome, ${user} ${welcomeEmoji}`;
+    document.getElementById("logoutBtn").style.display = "block";
+    document.getElementById("loginStack").classList.remove("active");
+    document.getElementById("converterCard").classList.add("active");
+    document.getElementById("topBar").style.display = "flex";
+    document.getElementById("username").value = "";
+    document.getElementById("password").value = "";
+    updateLoginPasswordToggle();
+    document.getElementById("fileInput").value = "";
+    document.getElementById("status").textContent = "";
+    document.getElementById("loginMessage").className = "auth-message";
+    lockConversions();
+  } catch (err) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("loggedIn");
+    localStorage.removeItem("username");
+    setAuthMessage("loginMessage", "Login failed: " + (err.message || "Unable to reach the server"));
+  }
+}
+
+async function register() {
+  const user = document.getElementById("registerUsername").value.trim();
+  const pass = document.getElementById("registerPassword").value;
+  const registerButton = document.getElementById("registerBtn");
+
+  if (!user || !pass) {
+    setAuthMessage("registerMessage", "Enter your username and password.");
+    return;
+  }
+  if (pass.length < 8) {
+    setAuthMessage("registerMessage", "Use at least 8 characters, including letters, numbers, and one symbol (#, _, or @).");
+    return;
+  }
+  if (!/^[A-Za-z0-9#_@]+$/.test(pass) || !/[A-Za-z]/.test(pass) || !/[0-9]/.test(pass) || !/[#_@]/.test(pass)) {
+    setAuthMessage("registerMessage", "Password needs letters, numbers, and one of these symbols: #, _, @. Other symbols are not allowed.");
+    return;
+  }
+
+  try {
+    registerButton.disabled = true;
+    registerButton.textContent = "Creating account…";
+    setAuthMessage("registerMessage", "Creating your account…", "success");
+    const res = await fetch(REGISTER_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: user, password: pass })
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || `Server error (${res.status})`);
+
+    const registerMessage = document.getElementById("registerMessage");
+    registerMessage.textContent = "Registration successful. You can log in now. Redirecting...";
+    registerMessage.className = "auth-message success visible";
+    registerButton.textContent = "Registered";
+    setTimeout(() => {
+      registerButton.disabled = false;
+      registerButton.textContent = "Register";
+      showLogin();
+    }, 700);
+
+  } catch (err) {
+    const registerMessage = document.getElementById("registerMessage");
+    registerMessage.textContent = "Registration failed: " + (err.message || "Unable to reach the server");
+    registerMessage.className = "auth-message error visible";
+    registerButton.disabled = false;
+    registerButton.textContent = "Register";
+  }
+}
+
+// 🚪 STEP 3.3: Logout
+function logout() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("loggedIn");
+  localStorage.removeItem("username");
+
+  document.getElementById("converterCard").classList.remove("active");
+  document.getElementById("registerCard").classList.remove("active");
+  document.getElementById("loginStack").classList.add("active");
+  document.getElementById("themeSwitch").checked = document.body.classList.contains("dark");
+  document.getElementById("topBar").style.display = "none";
+  document.getElementById("fileInput").value = "";
+  document.getElementById("status").textContent = "";
+  clearPendingDownload();
+  document.getElementById("password").value = "";
+  updateLoginPasswordToggle();
+  lockConversions();
+}
+
+async function convertFile() {
+    const token = localStorage.getItem("token");
+    if (!token) {
+        setAuthMessage("loginMessage", "Your session expired. Please log in again.");
+        logout();
+     return;
+    }
+  const fileInput = document.getElementById('fileInput');
+
+  // ✅ 1. Check if file exists FIRST
+  if (!fileInput.files.length) {
+    document.getElementById("status").textContent = "Please select a file.";
+    return;
+  }
+
+  const file = fileInput.files[0];
+  const originalName = file.name.split(".").slice(0, -1).join(".");
+
+  // ✅ 2. File validation
+  const maxSize = 50 * 1024 * 1024; // 50 MB
+  const extension = file.name.split(".").pop().toLowerCase();
+
+  if (!conversionsByExtension[extension]) {
+    document.getElementById("status").textContent = "Unsupported file type. Choose a supported file.";
+    return;
+  }
+
+  if (file.size > maxSize) {
+    document.getElementById("status").textContent = "File size exceeds the 50 MB limit.";
+    return;
+  }
+
+  const format = document.getElementById('format').value;
+  if (!conversionsByExtension[extension].includes(format)) {
+    document.getElementById("status").textContent = "Choose a conversion available for this file type.";
+    return;
+  }
+
+  // ✅ 3. Send to backend
+  // STEP 2: show spinner + disable button
+  const status = document.getElementById("status");
+  const btn = document.getElementById("convertBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+  fileInput.disabled = true;
+
+  status.innerHTML = '<div class="spinner"></div><p>Converting...</p>';
+  btn.disabled = true;
+  logoutBtn.disabled = true;
+  
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("format", format);
+
+  try {
+    const token = localStorage.getItem("token");
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+    "Authorization": "Bearer " + token
+     },
+      body: formData
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || "Upload failed");
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const fileName = `${originalName}.${extMap[format]}`;
+    const mimeTypes = {
+      pdf: "application/pdf",
+      docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      txt: "text/plain",
+      png: "image/png",
+      jpeg: "image/jpeg",
+      m4a: "audio/mp4",
+      wav: "audio/wav",
+      flac: "audio/flac"
+    };
+    pendingDownload = { blob, url, fileName, mimeType: mimeTypes[extMap[format]] || "application/octet-stream" };
+    fileInput.value = "";
+    lockConversions();
+    // STEP 3: success message + enable button
+    status.textContent = "Conversion successful ✅";
+    fileInput.disabled = false;
+    btn.hidden = true;
+    btn.disabled = false;
+    const downloadButton = document.getElementById("downloadBtn");
+    downloadButton.hidden = false;
+    downloadButton.disabled = false;
+    logoutBtn.disabled = false;
+
+  } catch (error) {
+    status.textContent = "Conversion failed ❌";
+    fileInput.disabled = false;
+    btn.disabled = false;
+    logoutBtn.disabled = false;
+    status.textContent = "Conversion failed ❌";
+  }
+}
+  </script>
+</body>
+</html>
