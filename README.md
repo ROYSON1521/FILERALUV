@@ -9,7 +9,7 @@ FILERALUV is the Android app for the file converter web service.
 
 ## Install the APK
 
-Copy `android-apk/app-debug.apk` to an Android phone and open it to install. If Android asks, allow your file manager or browser to install apps from that source. Converted files are saved under `Downloads/FILERALUV`.
+Copy `android-apk/fileraluv.apk` to an Android phone and open it to install. If Android asks, allow your file manager or browser to install apps from that source. Converted files are saved under `Downloads/FILERALUV`.
 
 ## Build the Android app
 
@@ -23,7 +23,7 @@ cd android
 .\gradlew.bat assembleDebug
 ```
 
-The APK will be created at `mobile/android/app/build/outputs/apk/debug/app-debug.apk`. The project has minimum Android API 23 and targets API 35, so it runs on Android 15 and Android 16 devices.
+The APK build output is created at `mobile/android/app/build/outputs/apk/debug/app-debug.apk`. The checked-in copy is named `android-apk/fileraluv.apk`. The project has minimum Android API 23 and targets API 35, so it runs on Android 15 and Android 16 devices.
 
 `mobile/www/index.html` is the bundled web frontend. In the full development workspace, `npm run cap-sync` copies the latest frontend from `web-app/frontend/index.html`; in this Android-only repository it uses the bundled copy.
 
