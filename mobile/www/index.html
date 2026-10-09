@@ -686,19 +686,28 @@ async function downloadConvertedFile() {
 
   try {
     if (capacitor?.getPlatform?.() === "android") {
-      if (!nativeDownloader?.saveToDownloads) throw new Error("Download support is missing from this app build.");
-      const buffer = await pendingDownload.blob.arrayBuffer();
-      const bytes = new Uint8Array(buffer);
-      const chunks = [];
-      const chunkSize = 0x8000;
-      for (let offset = 0; offset < bytes.length; offset += chunkSize) {
-        chunks.push(String.fromCharCode(...bytes.subarray(offset, offset + chunkSize)));
+      if (!nativeDownloader?.startDownload || !nativeDownloader?.appendDownloadChunk || !nativeDownloader?.finishDownload || !nativeDownloader?.cancelDownload) {
+        throw new Error("Download support is missing from this app build.");
       }
-      await nativeDownloader.saveToDownloads({
+      const { downloadId } = await nativeDownloader.startDownload({
         fileName: pendingDownload.fileName,
-        mimeType: pendingDownload.mimeType,
-        data: btoa(chunks.join(""))
+        mimeType: pendingDownload.mimeType
       });
+      try {
+        const chunkSize = 512 * 1024;
+        for (let offset = 0; offset < pendingDownload.blob.size; offset += chunkSize) {
+          const bytes = new Uint8Array(await pendingDownload.blob.slice(offset, offset + chunkSize).arrayBuffer());
+          const binaryChunks = [];
+          for (let index = 0; index < bytes.length; index += 0x8000) {
+            binaryChunks.push(String.fromCharCode(...bytes.subarray(index, index + 0x8000)));
+          }
+          await nativeDownloader.appendDownloadChunk({ downloadId, data: btoa(binaryChunks.join("")) });
+        }
+        await nativeDownloader.finishDownload({ downloadId });
+      } catch (error) {
+        await nativeDownloader.cancelDownload({ downloadId }).catch(() => {});
+        throw error;
+      }
       status.textContent = `Saved to Downloads/FILERALUV/${pendingDownload.fileName}`;
     } else {
       const anchor = document.createElement("a");

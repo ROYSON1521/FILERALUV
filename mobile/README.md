@@ -1,6 +1,6 @@
 ﻿# FILERALUV Android build
 
-This folder wraps the web frontend as an Android app. It uses the same Render API URLs configured in `../web-app/frontend/index.html`.
+This folder is a workspace mirror of the tracked Android project in `../FILERALUV/mobile`. Use `../FILERALUV/mobile` as the canonical Android source so Android code changes stay in the FILERALUV GitHub repository. Its sync script reads the workspace frontend from `../web-app/frontend/index.html` when available.
 
 ## Build a debug APK
 
@@ -14,5 +14,7 @@ This folder wraps the web frontend as an Android app. It uses the same Render AP
 8. Android Studio will show a notification with **Locate**. The debug APK is at `android\app\build\outputs\apk\debug\app-debug.apk`.
 
 The debug APK can be installed on an Android device for personal use. To publish on Google Play, create a signed release build in Android Studio.
+
+The app requires Android 10 (API 29) or newer for its public Downloads-folder feature. Android 15 and Android 16 are supported.
 
 Whenever `web-app/frontend/index.html` changes, run `npm run cap-sync` before rebuilding so the APK gets the latest page.

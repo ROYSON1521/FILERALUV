@@ -23,7 +23,7 @@ cd android
 .\gradlew.bat assembleDebug
 ```
 
-The APK build output is created at `mobile/android/app/build/outputs/apk/debug/app-debug.apk`. The checked-in copy is named `android-apk/fileraluv.apk`. The project has minimum Android API 23 and targets API 35, so it runs on Android 15 and Android 16 devices.
+The APK build output is created at `mobile/android/app/build/outputs/apk/debug/app-debug.apk`. The checked-in copy is named `android-apk/fileraluv.apk`. The project requires Android 10 (API 29) or newer and targets API 35, so it runs on Android 15 and Android 16 devices.
 
 `mobile/www/index.html` is the bundled web frontend. In the full development workspace, `npm run cap-sync` copies the latest frontend from `web-app/frontend/index.html`; in this Android-only repository it uses the bundled copy.
 
